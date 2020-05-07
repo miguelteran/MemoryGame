@@ -1,5 +1,6 @@
 package com.matb.memorygame;
 
+import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -15,7 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-public class MainActivity extends AppCompatActivity
+public class MainActivity extends AppCompatActivity implements VictoryDialog.VictoryDialogListener
 {
     private static String LOG_TAG = MainActivity.class.getSimpleName();
     private static final long ANIMATION_TIME = 100;
@@ -28,19 +29,25 @@ public class MainActivity extends AppCompatActivity
     private int numFlips;
     private int selectedImage;
     private int selectedPosition;
+    private int matchesToWin = 1;
     private boolean playerATurn;
 
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState)
+    public void initializeGame()
     {
-        this.images = ImageAssets.getImages(10);
+        this.images = ImageAssets.getImages(matchesToWin * 2);
         this.matchedImages = new ArrayList<>();
         this.playerAScore = 0;
         this.playerBScore = 0;
         this.numFlips = 0;
         this.playerATurn = true;
         this.selectedPosition = -1;
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState)
+    {
+        initializeGame();
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -63,7 +70,7 @@ public class MainActivity extends AppCompatActivity
                 AnimationFactory.flipTransition(viewFlipper,
                         AnimationFactory.FlipDirection.LEFT_RIGHT, ANIMATION_TIME);
 
-                final String player = playerATurn ? "A" : "B";
+                final String player = playerATurn ? getString(R.string.player_A) : getString(R.string.player_B);
                 Log.d(LOG_TAG, player + " pressed image i: " + i);
 
                 if (numFlips == 1)
@@ -132,24 +139,49 @@ public class MainActivity extends AppCompatActivity
                             int score = playerATurn ? playerAScore : playerBScore;
                             Log.d(LOG_TAG, player + " score: " + score);
 
-                            viewFlipper.postDelayed(new Runnable()
+                            if (score == matchesToWin)
                             {
-                                @Override
-                                public void run()
-                                {
-                                    // It's turn for the other player
-                                    numFlips = 0;
-                                    playerATurn = !playerATurn;
-                                    selectedPosition = -1;
+                                Log.d(LOG_TAG, player + " won");
 
-                                    String newPlayer = playerATurn ? "A" : "B";
-                                    Log.d(LOG_TAG, "Switching to " + newPlayer);
-                                }
-                            }, ANIMATION_TIME);
+                                Bundle bundle = new Bundle();
+                                bundle.putString(getString(R.string.winner_key), player);
+
+                                // Pop up dialog indicating which player won
+                                DialogFragment victoryDialog = new VictoryDialog();
+                                victoryDialog.setArguments(bundle);
+                                victoryDialog.show(getSupportFragmentManager(), "victory");
+                            }
+                            else
+                            {
+                                viewFlipper.postDelayed(new Runnable()
+                                {
+                                    @Override
+                                    public void run()
+                                    {
+                                        // It's turn for the other player
+                                        numFlips = 0;
+                                        playerATurn = !playerATurn;
+                                        selectedPosition = -1;
+
+                                        String newPlayer = playerATurn ? getString(R.string.player_A)
+                                                : getString(R.string.player_B);
+                                        Log.d(LOG_TAG, "Switching to " + newPlayer);
+                                    }
+                                }, ANIMATION_TIME);
+                            }
                         }
                     }, THREAD_DELAY);
                 }
             }
         });
+    }
+
+    @Override
+    public void onNewGameClick(DialogFragment dialog)
+    {
+        dialog.dismiss();
+
+        Log.d(LOG_TAG, "Recreating activity");
+        this.recreate();
     }
 }

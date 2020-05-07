@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">MemoryGame</string>
+    <string name="new_game_button">New Game</string>
+    <string name="player_A">Player A</string>
+    <string name="player_B">Player B</string>
+    <string name="winner_key">winner</string>
 </resources>
