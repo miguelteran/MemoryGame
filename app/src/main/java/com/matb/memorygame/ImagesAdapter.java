@@ -30,9 +30,9 @@ public class ImagesAdapter extends BaseAdapter
         this.disabledImages = new ArrayList<>();
     }
 
-    public void setDisabledImages(List<Integer> disabledImages)
+    public void addDisabledImages(Integer disabledImages)
     {
-        this.disabledImages = disabledImages;
+        this.disabledImages.add(disabledImages);
     }
 
     public void setSelectedPositions(List<Integer> selectedPositions)
@@ -73,15 +73,17 @@ public class ImagesAdapter extends BaseAdapter
             view = convertView;
         }
 
-        Integer imageId = this.imageIds.get(i);
+        int imageId = imageIds.get(i);
 
         if (disabledImages.contains(imageId))
         {
             view.setVisibility(View.GONE);
-            Log.d(LOG_TAG, "invisible "  + i + " imageid " + imageId);
+            Log.d(LOG_TAG, "invisible "  + i);
         }
         else
         {
+            view.setVisibility(View.VISIBLE);
+
             ImageView imageView = view.findViewById(R.id.front);
             imageView.setImageResource(imageId);
 

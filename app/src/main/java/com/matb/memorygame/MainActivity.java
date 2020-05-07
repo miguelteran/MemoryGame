@@ -1,5 +1,6 @@
 package com.matb.memorygame;
 
+import android.graphics.Typeface;
 import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -7,6 +8,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.GridView;
+import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ViewFlipper;
 
@@ -23,20 +25,22 @@ public class MainActivity extends AppCompatActivity implements VictoryDialog.Vic
     private static final long THREAD_DELAY = 600;
 
     private List<Integer> images;
-    private List<Integer> matchedImages; // to keep track of images that have been matched
     private int playerAScore;
     private int playerBScore;
     private int numFlips;
     private int selectedImage;
     private int selectedPosition;
-    private int matchesToWin = 1;
+    private int matchesToWin = 10;
     private boolean playerATurn;
 
+    private TextView playerAHeaderTV;
+    private TextView playerBHeaderTV;
+    private TextView playerAScoreTV;
+    private TextView playerBScoreTV;
 
     public void initializeGame()
     {
         this.images = ImageAssets.getImages(matchesToWin * 2);
-        this.matchedImages = new ArrayList<>();
         this.playerAScore = 0;
         this.playerBScore = 0;
         this.numFlips = 0;
@@ -51,6 +55,19 @@ public class MainActivity extends AppCompatActivity implements VictoryDialog.Vic
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        this.playerAScoreTV = findViewById(R.id.player_A_score);
+        this.playerBScoreTV = findViewById(R.id.player_B_score);
+        this.playerAHeaderTV = findViewById(R.id.player_A_header);
+        this.playerBHeaderTV = findViewById(R.id.player_B_header);
+
+        // Set initial scores in the UI
+        this.playerAScoreTV.setText(String.format("%d", this.playerAScore));
+        this.playerBScoreTV.setText(String.format("%d", this.playerBScore));
+
+        // Make active player name and score bold
+        this.playerAHeaderTV.setTypeface(Typeface.DEFAULT_BOLD);
+        this.playerAScoreTV.setTypeface(Typeface.DEFAULT_BOLD);
 
         final GridView gridView = findViewById(R.id.products_grid);
         gridView.setAdapter(new ImagesAdapter(this.getApplicationContext(), this.images));
@@ -100,21 +117,13 @@ public class MainActivity extends AppCompatActivity implements VictoryDialog.Vic
                         {
                             if (selectedImage == images.get(i)) // there was a match
                             {
-                                if (playerATurn)
-                                {
-                                    playerAScore++;
-                                }
-                                else
-                                {
-                                    playerBScore++;
-                                }
+                                increaseScore();
 
                                 String msg = player + " matched!";
                                 Log.d(LOG_TAG, msg);
-                                Toast.makeText(MainActivity.this, msg, Toast.LENGTH_LONG).show();
+                                Toast.makeText(MainActivity.this, msg, Toast.LENGTH_SHORT).show();
 
-                                matchedImages.add(selectedImage);
-                                ((ImagesAdapter) gridView.getAdapter()).setDisabledImages(matchedImages);
+                                ((ImagesAdapter) gridView.getAdapter()).addDisabledImages(selectedImage);
                             }
                             else
                             {
@@ -163,6 +172,8 @@ public class MainActivity extends AppCompatActivity implements VictoryDialog.Vic
                                         playerATurn = !playerATurn;
                                         selectedPosition = -1;
 
+                                        changeHeadersTypeface();
+
                                         String newPlayer = playerATurn ? getString(R.string.player_A)
                                                 : getString(R.string.player_B);
                                         Log.d(LOG_TAG, "Switching to " + newPlayer);
@@ -183,5 +194,37 @@ public class MainActivity extends AppCompatActivity implements VictoryDialog.Vic
 
         Log.d(LOG_TAG, "Recreating activity");
         this.recreate();
+    }
+
+    private void increaseScore()
+    {
+        if (this.playerATurn)
+        {
+            this.playerAScore++;
+            this.playerAScoreTV.setText(String.format("%d", this.playerAScore));
+        }
+        else
+        {
+            this.playerBScore++;
+            this.playerBScoreTV.setText(String.format("%d", this.playerBScore));
+        }
+    }
+
+    private void changeHeadersTypeface()
+    {
+        if (this.playerATurn)
+        {
+            this.playerAHeaderTV.setTypeface(Typeface.DEFAULT_BOLD);
+            this.playerAScoreTV.setTypeface(Typeface.DEFAULT_BOLD);
+            this.playerBHeaderTV.setTypeface(Typeface.DEFAULT);
+            this.playerBScoreTV.setTypeface(Typeface.DEFAULT);
+        }
+        else
+        {
+            this.playerAHeaderTV.setTypeface(Typeface.DEFAULT);
+            this.playerAScoreTV.setTypeface(Typeface.DEFAULT);
+            this.playerBHeaderTV.setTypeface(Typeface.DEFAULT_BOLD);
+            this.playerBScoreTV.setTypeface(Typeface.DEFAULT_BOLD);
+        }
     }
 }
