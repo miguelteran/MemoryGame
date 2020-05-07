@@ -7,6 +7,9 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.GridView;
 import android.widget.Toast;
+import android.widget.ViewFlipper;
+
+import com.tekle.oss.android.animation.AnimationFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +18,8 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity
 {
     private static String LOG_TAG = MainActivity.class.getSimpleName();
+    private static final long ANIMATION_TIME = 100;
+    private static final long THREAD_DELAY = 600;
 
     private List<Integer> images;
     private List<Integer> matchedImages; // to keep track of images that have been matched
@@ -22,7 +27,7 @@ public class MainActivity extends AppCompatActivity
     private int playerBScore;
     private int numFlips;
     private int selectedImage;
-    private int selectedViewId;
+    private int selectedPosition;
     private boolean playerATurn;
 
 
@@ -35,6 +40,7 @@ public class MainActivity extends AppCompatActivity
         this.playerBScore = 0;
         this.numFlips = 0;
         this.playerATurn = true;
+        this.selectedPosition = -1;
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -44,51 +50,104 @@ public class MainActivity extends AppCompatActivity
         gridView.setOnItemClickListener(new AdapterView.OnItemClickListener()
         {
             @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l)
+            public void onItemClick(AdapterView<?> adapterView, View view, final int i, long l)
             {
+                if (numFlips == 2 || i == selectedPosition) // first condition means previous animation hasn't finished
+                {
+                    return;
+                }
+
                 numFlips++;
 
-                String player = playerATurn ? "A" : "B";
-                String msg = player + " pressed image i: " + i;
-                Log.d(LOG_TAG, msg);
+                final ViewFlipper viewFlipper = view.findViewById(R.id.grid_item);
+                AnimationFactory.flipTransition(viewFlipper,
+                        AnimationFactory.FlipDirection.LEFT_RIGHT, ANIMATION_TIME);
+
+                final String player = playerATurn ? "A" : "B";
+                Log.d(LOG_TAG, player + " pressed image i: " + i);
 
                 if (numFlips == 1)
                 {
                     // Save first attempt
                     selectedImage = images.get(i);
-                    selectedViewId = view.getId();
+                    selectedPosition = i;
+                    final List<Integer> positions = new ArrayList<>();
+                    positions.add(selectedPosition);
+                    viewFlipper.postDelayed(new Runnable()
+                    {
+                        @Override
+                        public void run()
+                        {
+                            ((ImagesAdapter) gridView.getAdapter()).setSelectedPositions(positions);
+                            ((ImagesAdapter) gridView.getAdapter()).notifyDataSetChanged();
+                        }
+                    }, ANIMATION_TIME);
                 }
                 else
                 {
-                    if (selectedImage == images.get(i))
+                    // Run in a delayed thread in order to not interrupt the animation
+                    viewFlipper.postDelayed(new Runnable()
                     {
-                        if (playerATurn)
+                        @Override
+                        public void run()
                         {
-                            playerAScore++;
+                            if (selectedImage == images.get(i)) // there was a match
+                            {
+                                if (playerATurn)
+                                {
+                                    playerAScore++;
+                                }
+                                else
+                                {
+                                    playerBScore++;
+                                }
+
+                                String msg = player + " matched!";
+                                Log.d(LOG_TAG, msg);
+                                Toast.makeText(MainActivity.this, msg, Toast.LENGTH_LONG).show();
+
+                                matchedImages.add(selectedImage);
+                                ((ImagesAdapter) gridView.getAdapter()).setDisabledImages(matchedImages);
+                            }
+                            else
+                            {
+                                // Flip card only if it is visible
+                                if (selectedPosition >= gridView.getFirstVisiblePosition() &&
+                                        selectedPosition <= gridView.getLastVisiblePosition())
+                                {
+                                    View v = gridView.getChildAt(selectedPosition -
+                                            gridView.getFirstVisiblePosition());
+                                    ViewFlipper item = v.findViewById(R.id.grid_item);
+                                    AnimationFactory.flipTransition(item,
+                                            AnimationFactory.FlipDirection.LEFT_RIGHT, ANIMATION_TIME);
+                                }
+
+                                AnimationFactory.flipTransition(viewFlipper,
+                                        AnimationFactory.FlipDirection.LEFT_RIGHT, ANIMATION_TIME);
+                            }
+
+                            ((ImagesAdapter) gridView.getAdapter()).setSelectedPositions(new ArrayList<Integer>());
+                            ((ImagesAdapter) gridView.getAdapter()).notifyDataSetChanged();
+
+                            int score = playerATurn ? playerAScore : playerBScore;
+                            Log.d(LOG_TAG, player + " score: " + score);
+
+                            viewFlipper.postDelayed(new Runnable()
+                            {
+                                @Override
+                                public void run()
+                                {
+                                    // It's turn for the other player
+                                    numFlips = 0;
+                                    playerATurn = !playerATurn;
+                                    selectedPosition = -1;
+
+                                    String newPlayer = playerATurn ? "A" : "B";
+                                    Log.d(LOG_TAG, "Switching to " + newPlayer);
+                                }
+                            }, ANIMATION_TIME);
                         }
-                        else
-                        {
-                            playerBScore++;
-                        }
-
-                        Log.d(LOG_TAG, player + " matched!");
-                        Toast.makeText(MainActivity.this, player + " matched!", Toast.LENGTH_LONG).show();
-
-                        // Hide images that were matched
-                        matchedImages.add(selectedImage);
-                        ((ImagesAdapter) gridView.getAdapter()).setDisabledImages(matchedImages);
-                        ((ImagesAdapter) gridView.getAdapter()).notifyDataSetChanged();
-                    }
-
-                    int score = playerATurn ? playerAScore : playerBScore;
-                    Log.d(LOG_TAG, player + " score: " + score);
-
-                    // It's turn for the other player
-                    numFlips = 0;
-                    playerATurn = !playerATurn;
-
-                    player = playerATurn ? "A" : "B";
-                    Log.d(LOG_TAG, "Switching to " + player);
+                    }, THREAD_DELAY);
                 }
             }
         });
