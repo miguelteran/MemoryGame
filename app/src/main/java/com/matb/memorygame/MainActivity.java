@@ -34,6 +34,7 @@ public class MainActivity extends AppCompatActivity implements VictoryDialog.Vic
     private static final String MATCHED_IMAGES = "matchedImages";
     private static final String SELECTED_POSITION = "selectedPosition";
     private static final String TURN = "turn";
+    private static final String START_NEW_GAME = "startNewGame";
 
     private List<Integer> images;
     private List<Integer> matchedImages;
@@ -41,9 +42,9 @@ public class MainActivity extends AppCompatActivity implements VictoryDialog.Vic
     private int playerAScore;
     private int playerBScore;
     private int numFlips;
-
-    private int matchesToWin = 10;
+    private int matchesToWin = 1;
     private boolean playerATurn;
+    private boolean startNewGame;
 
     private TextView playerAHeaderTV;
     private TextView playerBHeaderTV;
@@ -52,6 +53,7 @@ public class MainActivity extends AppCompatActivity implements VictoryDialog.Vic
 
     private void initializeGameState()
     {
+        Log.d(LOG_TAG, "Initializing game state");
         this.images = ImageAssets.getImages(matchesToWin * 2);
         this.selectedPosition = -1;
         this.matchedImages = new ArrayList<>();
@@ -59,10 +61,12 @@ public class MainActivity extends AppCompatActivity implements VictoryDialog.Vic
         this.playerBScore = 0;
         this.numFlips = 0;
         this.playerATurn = true;
+        this.startNewGame = false;
     }
 
     private void restoreGameState(Bundle savedState)
     {
+        Log.d(LOG_TAG, "Restoring game state");
         this.images = savedState.getIntegerArrayList(IMAGES);
         this.selectedPosition = savedState.getInt(SELECTED_POSITION);
         this.matchedImages = savedState.getIntegerArrayList(MATCHED_IMAGES);
@@ -77,7 +81,7 @@ public class MainActivity extends AppCompatActivity implements VictoryDialog.Vic
     {
         super.onCreate(savedInstanceState);
 
-        if (savedInstanceState == null)
+        if (savedInstanceState == null || savedInstanceState.getBoolean(START_NEW_GAME))
         {
             initializeGameState();
         }
@@ -224,6 +228,7 @@ public class MainActivity extends AppCompatActivity implements VictoryDialog.Vic
     {
         dialog.dismiss();
 
+        this.startNewGame = true;
         Log.d(LOG_TAG, "Recreating activity");
         this.recreate();
     }
@@ -231,13 +236,19 @@ public class MainActivity extends AppCompatActivity implements VictoryDialog.Vic
     @Override
     protected void onSaveInstanceState(Bundle outState)
     {
-        outState.putInt(PLAYER_A_SCORE, this.playerAScore);
-        outState.putInt(PLAYER_B_SCORE, this.playerBScore);
-        outState.putInt(NUM_FLIPS, this.numFlips);
-        outState.putInt(SELECTED_POSITION, this.selectedPosition);
-        outState.putBoolean(TURN, this.playerATurn);
-        outState.putIntegerArrayList(IMAGES, (ArrayList) this.images);
-        outState.putIntegerArrayList(MATCHED_IMAGES, (ArrayList) this.matchedImages);
+        if (!this.startNewGame)
+        {
+            Log.d(LOG_TAG, "Saving state");
+            outState.putInt(PLAYER_A_SCORE, this.playerAScore);
+            outState.putInt(PLAYER_B_SCORE, this.playerBScore);
+            outState.putInt(NUM_FLIPS, this.numFlips);
+            outState.putInt(SELECTED_POSITION, this.selectedPosition);
+            outState.putBoolean(TURN, this.playerATurn);
+            outState.putIntegerArrayList(IMAGES, (ArrayList) this.images);
+            outState.putIntegerArrayList(MATCHED_IMAGES, (ArrayList) this.matchedImages);
+        }
+
+        outState.putBoolean(START_NEW_GAME, this.startNewGame);
         super.onSaveInstanceState(outState);
     }
 
