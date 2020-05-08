@@ -1,5 +1,7 @@
 package com.matb.memorygame;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.graphics.Typeface;
 import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AppCompatActivity;
@@ -237,6 +239,22 @@ public class MainActivity extends AppCompatActivity implements VictoryDialog.Vic
         outState.putIntegerArrayList(IMAGES, (ArrayList) this.images);
         outState.putIntegerArrayList(MATCHED_IMAGES, (ArrayList) this.matchedImages);
         super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    public void onBackPressed()
+    {
+        // Create pop up window for exit confirmation
+        new AlertDialog.Builder(this)
+            .setMessage(R.string.exit_message)
+            .setNegativeButton(android.R.string.no, null)
+            .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener()
+            {
+                public void onClick(DialogInterface dialog, int id)
+                {
+                    MainActivity.super.onBackPressed();
+                }
+            }).create().show();
     }
 
     private void increaseScore()
