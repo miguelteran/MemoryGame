@@ -22,12 +22,12 @@ public class ImagesAdapter extends BaseAdapter
     private List<Integer> selectedPositions;
     private List<Integer> disabledImages;
 
-    ImagesAdapter(Context context, List<Integer> imageIds)
+    ImagesAdapter(Context context, List<Integer> imageIds, List<Integer> selectedPositions, List<Integer> disabledImages)
     {
         this.context = context;
         this.imageIds = imageIds;
-        this.selectedPositions = new ArrayList<>();
-        this.disabledImages = new ArrayList<>();
+        this.selectedPositions = selectedPositions;
+        this.disabledImages = disabledImages;
     }
 
     public void addDisabledImages(Integer disabledImages)

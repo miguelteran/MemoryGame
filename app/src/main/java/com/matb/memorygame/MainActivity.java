@@ -24,12 +24,22 @@ public class MainActivity extends AppCompatActivity implements VictoryDialog.Vic
     private static final long ANIMATION_TIME = 100;
     private static final long THREAD_DELAY = 600;
 
+    // Keys for saved state
+    private static final String PLAYER_A_SCORE = "playerAScore";
+    private static final String PLAYER_B_SCORE = "playerBScore";
+    private static final String NUM_FLIPS = "numFlips";
+    private static final String IMAGES = "images";
+    private static final String MATCHED_IMAGES = "matchedImages";
+    private static final String SELECTED_POSITION = "selectedPosition";
+    private static final String TURN = "turn";
+
     private List<Integer> images;
+    private List<Integer> matchedImages;
+    private int selectedPosition;
     private int playerAScore;
     private int playerBScore;
     private int numFlips;
-    private int selectedImage;
-    private int selectedPosition;
+
     private int matchesToWin = 10;
     private boolean playerATurn;
 
@@ -38,22 +48,42 @@ public class MainActivity extends AppCompatActivity implements VictoryDialog.Vic
     private TextView playerAScoreTV;
     private TextView playerBScoreTV;
 
-    public void initializeGame()
+    private void initializeGameState()
     {
         this.images = ImageAssets.getImages(matchesToWin * 2);
+        this.selectedPosition = -1;
+        this.matchedImages = new ArrayList<>();
         this.playerAScore = 0;
         this.playerBScore = 0;
         this.numFlips = 0;
         this.playerATurn = true;
-        this.selectedPosition = -1;
+    }
+
+    private void restoreGameState(Bundle savedState)
+    {
+        this.images = savedState.getIntegerArrayList(IMAGES);
+        this.selectedPosition = savedState.getInt(SELECTED_POSITION);
+        this.matchedImages = savedState.getIntegerArrayList(MATCHED_IMAGES);
+        this.playerAScore = savedState.getInt(PLAYER_A_SCORE);
+        this.playerBScore = savedState.getInt(PLAYER_B_SCORE);
+        this.numFlips = savedState.getInt(NUM_FLIPS);
+        this.playerATurn = savedState.getBoolean(TURN);
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
-        initializeGame();
-
         super.onCreate(savedInstanceState);
+
+        if (savedInstanceState == null)
+        {
+            initializeGameState();
+        }
+        else
+        {
+            restoreGameState(savedInstanceState);
+        }
+
         setContentView(R.layout.activity_main);
 
         this.playerAScoreTV = findViewById(R.id.player_A_score);
@@ -66,11 +96,10 @@ public class MainActivity extends AppCompatActivity implements VictoryDialog.Vic
         this.playerBScoreTV.setText(String.format("%d", this.playerBScore));
 
         // Make active player name and score bold
-        this.playerAHeaderTV.setTypeface(Typeface.DEFAULT_BOLD);
-        this.playerAScoreTV.setTypeface(Typeface.DEFAULT_BOLD);
+        setHeadersTypeface();
 
         final GridView gridView = findViewById(R.id.products_grid);
-        gridView.setAdapter(new ImagesAdapter(this.getApplicationContext(), this.images));
+        gridView.setAdapter(new ImagesAdapter(this.getApplicationContext(), this.images, new ArrayList<Integer>(){{add(selectedPosition);}}, this.matchedImages));
         gridView.setOnItemClickListener(new AdapterView.OnItemClickListener()
         {
             @Override
@@ -93,7 +122,6 @@ public class MainActivity extends AppCompatActivity implements VictoryDialog.Vic
                 if (numFlips == 1)
                 {
                     // Save first attempt
-                    selectedImage = images.get(i);
                     selectedPosition = i;
                     final List<Integer> positions = new ArrayList<>();
                     positions.add(selectedPosition);
@@ -115,7 +143,8 @@ public class MainActivity extends AppCompatActivity implements VictoryDialog.Vic
                         @Override
                         public void run()
                         {
-                            if (selectedImage == images.get(i)) // there was a match
+                            Integer image = images.get(selectedPosition);
+                            if (image.equals(images.get(i))) // there was a match
                             {
                                 increaseScore();
 
@@ -123,7 +152,8 @@ public class MainActivity extends AppCompatActivity implements VictoryDialog.Vic
                                 Log.d(LOG_TAG, msg);
                                 Toast.makeText(MainActivity.this, msg, Toast.LENGTH_SHORT).show();
 
-                                ((ImagesAdapter) gridView.getAdapter()).addDisabledImages(selectedImage);
+                                matchedImages.add(image);
+                                ((ImagesAdapter) gridView.getAdapter()).addDisabledImages(image);
                             }
                             else
                             {
@@ -172,7 +202,7 @@ public class MainActivity extends AppCompatActivity implements VictoryDialog.Vic
                                         playerATurn = !playerATurn;
                                         selectedPosition = -1;
 
-                                        changeHeadersTypeface();
+                                        setHeadersTypeface();
 
                                         String newPlayer = playerATurn ? getString(R.string.player_A)
                                                 : getString(R.string.player_B);
@@ -196,6 +226,19 @@ public class MainActivity extends AppCompatActivity implements VictoryDialog.Vic
         this.recreate();
     }
 
+    @Override
+    protected void onSaveInstanceState(Bundle outState)
+    {
+        outState.putInt(PLAYER_A_SCORE, this.playerAScore);
+        outState.putInt(PLAYER_B_SCORE, this.playerBScore);
+        outState.putInt(NUM_FLIPS, this.numFlips);
+        outState.putInt(SELECTED_POSITION, this.selectedPosition);
+        outState.putBoolean(TURN, this.playerATurn);
+        outState.putIntegerArrayList(IMAGES, (ArrayList) this.images);
+        outState.putIntegerArrayList(MATCHED_IMAGES, (ArrayList) this.matchedImages);
+        super.onSaveInstanceState(outState);
+    }
+
     private void increaseScore()
     {
         if (this.playerATurn)
@@ -210,7 +253,7 @@ public class MainActivity extends AppCompatActivity implements VictoryDialog.Vic
         }
     }
 
-    private void changeHeadersTypeface()
+    private void setHeadersTypeface()
     {
         if (this.playerATurn)
         {
