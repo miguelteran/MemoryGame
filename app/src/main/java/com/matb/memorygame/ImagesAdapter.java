@@ -9,7 +9,6 @@ import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.ViewFlipper;
 
-import java.util.ArrayList;
 import java.util.List;
 
 
@@ -33,6 +32,16 @@ public class ImagesAdapter extends BaseAdapter
     public void addDisabledImages(Integer disabledImages)
     {
         this.disabledImages.add(disabledImages);
+    }
+
+    public void setImageIds(List<Integer> imageIds)
+    {
+        this.imageIds = imageIds;
+    }
+
+    public void setDisabledImages(List<Integer> disabledImages)
+    {
+        this.disabledImages = disabledImages;
     }
 
     public void setSelectedPositions(List<Integer> selectedPositions)

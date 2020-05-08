@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <EditTextPreference
+        android:defaultValue="@string/default_matches_to_win"
+        android:key="@string/matches_to_win"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:title="@string/matches_to_win"
+    />
+
+    <ListPreference
+        android:defaultValue="@string/two"
+        android:entries="@array/number_of_matching_cards"
+        android:entryValues="@array/number_of_matching_cards"
+        android:key="@string/matching_cards"
+        android:title="@string/matching_cards"
+    />
+
+</PreferenceScreen>

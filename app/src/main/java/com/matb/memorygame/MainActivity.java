@@ -2,11 +2,17 @@ package com.matb.memorygame;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Typeface;
 import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.preference.PreferenceManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.GridView;
@@ -20,7 +26,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-public class MainActivity extends AppCompatActivity implements VictoryDialog.VictoryDialogListener
+public class MainActivity extends AppCompatActivity
+        implements VictoryDialog.VictoryDialogListener, SharedPreferences.OnSharedPreferenceChangeListener
 {
     private static String LOG_TAG = MainActivity.class.getSimpleName();
     private static final long ANIMATION_TIME = 100;
@@ -34,7 +41,7 @@ public class MainActivity extends AppCompatActivity implements VictoryDialog.Vic
     private static final String MATCHED_IMAGES = "matchedImages";
     private static final String SELECTED_POSITION = "selectedPosition";
     private static final String TURN = "turn";
-    private static final String START_NEW_GAME = "startNewGame";
+    private static final String MATCHES_TO_WIN = "matchesToWin";
 
     private List<Integer> images;
     private List<Integer> matchedImages;
@@ -42,26 +49,29 @@ public class MainActivity extends AppCompatActivity implements VictoryDialog.Vic
     private int playerAScore;
     private int playerBScore;
     private int numFlips;
-    private int matchesToWin = 1;
+    private int matchesToWin;
     private boolean playerATurn;
-    private boolean startNewGame;
 
     private TextView playerAHeaderTV;
     private TextView playerBHeaderTV;
     private TextView playerAScoreTV;
     private TextView playerBScoreTV;
+    private GridView gridView;
 
     private void initializeGameState()
     {
         Log.d(LOG_TAG, "Initializing game state");
-        this.images = ImageAssets.getImages(matchesToWin * 2);
+
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        this.matchesToWin = Integer.parseInt(preferences.getString(getString(R.string.matches_to_win),
+                                            getString(R.string.default_matches_to_win)));
+        this.images = ImageAssets.getImages(this.matchesToWin * 2);
         this.selectedPosition = -1;
         this.matchedImages = new ArrayList<>();
         this.playerAScore = 0;
         this.playerBScore = 0;
         this.numFlips = 0;
         this.playerATurn = true;
-        this.startNewGame = false;
     }
 
     private void restoreGameState(Bundle savedState)
@@ -70,6 +80,7 @@ public class MainActivity extends AppCompatActivity implements VictoryDialog.Vic
         this.images = savedState.getIntegerArrayList(IMAGES);
         this.selectedPosition = savedState.getInt(SELECTED_POSITION);
         this.matchedImages = savedState.getIntegerArrayList(MATCHED_IMAGES);
+        this.matchesToWin = savedState.getInt(MATCHES_TO_WIN);
         this.playerAScore = savedState.getInt(PLAYER_A_SCORE);
         this.playerBScore = savedState.getInt(PLAYER_B_SCORE);
         this.numFlips = savedState.getInt(NUM_FLIPS);
@@ -81,7 +92,7 @@ public class MainActivity extends AppCompatActivity implements VictoryDialog.Vic
     {
         super.onCreate(savedInstanceState);
 
-        if (savedInstanceState == null || savedInstanceState.getBoolean(START_NEW_GAME))
+        if (savedInstanceState == null)
         {
             initializeGameState();
         }
@@ -98,15 +109,14 @@ public class MainActivity extends AppCompatActivity implements VictoryDialog.Vic
         this.playerBHeaderTV = findViewById(R.id.player_B_header);
 
         // Set initial scores in the UI
-        this.playerAScoreTV.setText(String.format("%d", this.playerAScore));
-        this.playerBScoreTV.setText(String.format("%d", this.playerBScore));
+        setScores();
 
         // Make active player name and score bold
         setHeadersTypeface();
 
-        final GridView gridView = findViewById(R.id.products_grid);
-        gridView.setAdapter(new ImagesAdapter(this.getApplicationContext(), this.images, new ArrayList<Integer>(){{add(selectedPosition);}}, this.matchedImages));
-        gridView.setOnItemClickListener(new AdapterView.OnItemClickListener()
+        this.gridView = findViewById(R.id.products_grid);
+        this.gridView.setAdapter(new ImagesAdapter(this.getApplicationContext(), this.images, new ArrayList<Integer>(){{add(selectedPosition);}}, this.matchedImages));
+        this.gridView.setOnItemClickListener(new AdapterView.OnItemClickListener()
         {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, final int i, long l)
@@ -221,34 +231,30 @@ public class MainActivity extends AppCompatActivity implements VictoryDialog.Vic
                 }
             }
         });
+
+        PreferenceManager.getDefaultSharedPreferences(this)
+                .registerOnSharedPreferenceChangeListener(this);
     }
 
     @Override
     public void onNewGameClick(DialogFragment dialog)
     {
         dialog.dismiss();
-
-        this.startNewGame = true;
-        Log.d(LOG_TAG, "Recreating activity");
-        this.recreate();
+        startNewGame();
     }
 
     @Override
     protected void onSaveInstanceState(Bundle outState)
     {
-        if (!this.startNewGame)
-        {
-            Log.d(LOG_TAG, "Saving state");
-            outState.putInt(PLAYER_A_SCORE, this.playerAScore);
-            outState.putInt(PLAYER_B_SCORE, this.playerBScore);
-            outState.putInt(NUM_FLIPS, this.numFlips);
-            outState.putInt(SELECTED_POSITION, this.selectedPosition);
-            outState.putBoolean(TURN, this.playerATurn);
-            outState.putIntegerArrayList(IMAGES, (ArrayList) this.images);
-            outState.putIntegerArrayList(MATCHED_IMAGES, (ArrayList) this.matchedImages);
-        }
-
-        outState.putBoolean(START_NEW_GAME, this.startNewGame);
+        Log.d(LOG_TAG, "Saving state");
+        outState.putInt(PLAYER_A_SCORE, this.playerAScore);
+        outState.putInt(PLAYER_B_SCORE, this.playerBScore);
+        outState.putInt(NUM_FLIPS, this.numFlips);
+        outState.putInt(SELECTED_POSITION, this.selectedPosition);
+        outState.putInt(MATCHES_TO_WIN, this.matchesToWin);
+        outState.putBoolean(TURN, this.playerATurn);
+        outState.putIntegerArrayList(IMAGES, (ArrayList) this.images);
+        outState.putIntegerArrayList(MATCHED_IMAGES, (ArrayList) this.matchedImages);
         super.onSaveInstanceState(outState);
     }
 
@@ -266,6 +272,44 @@ public class MainActivity extends AppCompatActivity implements VictoryDialog.Vic
                     MainActivity.super.onBackPressed();
                 }
             }).create().show();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu)
+    {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.main_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item)
+    {
+        if (item.getItemId() == R.id.settings_menu_item)
+        {
+            Intent settingsActivity = new Intent(this, SettingsActivity.class);
+            startActivity(settingsActivity);
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void startNewGame()
+    {
+        Log.d(LOG_TAG, "Starting a new game");
+        initializeGameState();
+        setScores();
+        setHeadersTypeface();
+        ((ImagesAdapter) this.gridView.getAdapter()).setImageIds(this.images);
+        ((ImagesAdapter) this.gridView.getAdapter()).setSelectedPositions(new ArrayList<Integer>(){{add(selectedPosition);}});
+        ((ImagesAdapter) this.gridView.getAdapter()).setDisabledImages(this.matchedImages);
+        ((ImagesAdapter) this.gridView.getAdapter()).notifyDataSetChanged();
+    }
+
+    private void setScores()
+    {
+        this.playerAScoreTV.setText(String.format("%d", this.playerAScore));
+        this.playerBScoreTV.setText(String.format("%d", this.playerBScore));
     }
 
     private void increaseScore()
@@ -298,5 +342,21 @@ public class MainActivity extends AppCompatActivity implements VictoryDialog.Vic
             this.playerBHeaderTV.setTypeface(Typeface.DEFAULT_BOLD);
             this.playerBScoreTV.setTypeface(Typeface.DEFAULT_BOLD);
         }
+    }
+
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String s)
+    {
+        Log.d(LOG_TAG, "Settings changed");
+        startNewGame();
+    }
+
+    @Override
+    protected void onDestroy()
+    {
+        Log.d(LOG_TAG, "Destroying activity");
+        super.onDestroy();
+        PreferenceManager.getDefaultSharedPreferences(this)
+                .unregisterOnSharedPreferenceChangeListener(this);
     }
 }

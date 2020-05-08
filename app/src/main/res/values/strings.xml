@@ -10,4 +10,14 @@
 
     <string name="exit_message">Do you want to quit?</string>
 
+    <string name="settings">Settings</string>
+    <string name="matching_cards">Number of cards to match</string>
+    <string name="matches_to_win">Number of matches to win</string>
+    <string name="two">2</string>
+    <string name="three">3</string>
+    <string name="four">4</string>
+    <string name="default_matches_to_win">10</string>
+
+    <string name="bad_input_error_message">"Please select a number between 10 and 24"</string>
+
 </resources>
