@@ -82,27 +82,24 @@ public class ImagesAdapter extends BaseAdapter
             view = convertView;
         }
 
+        ImageView imageView = view.findViewById(R.id.front);
         int imageId = imageIds.get(i);
 
         if (disabledImages.contains(imageId))
         {
-            view.setVisibility(View.GONE);
-            Log.d(LOG_TAG, "invisible "  + i);
+            imageView.setImageResource(R.drawable.blank);
         }
         else
         {
-            view.setVisibility(View.VISIBLE);
-
-            ImageView imageView = view.findViewById(R.id.front);
             imageView.setImageResource(imageId);
-
-            // Show face or back of card depending if it has been selected
-            ViewFlipper viewFlipper = view.findViewById(R.id.grid_item);
-            viewFlipper.setInAnimation(null);
-            viewFlipper.setOutAnimation(null);
-            int childId = selectedPositions.contains(i) ? R.id.front : R.id.back;
-            viewFlipper.setDisplayedChild(viewFlipper.indexOfChild(viewFlipper.findViewById(childId)));
         }
+
+        // Show face or back of card depending if it has been selected
+        ViewFlipper viewFlipper = view.findViewById(R.id.grid_item);
+        viewFlipper.setInAnimation(null);
+        viewFlipper.setOutAnimation(null);
+        int childId = selectedPositions.contains(i) || disabledImages.contains(imageId) ? R.id.front : R.id.back;
+        viewFlipper.setDisplayedChild(viewFlipper.indexOfChild(viewFlipper.findViewById(childId)));
 
         return view;
     }

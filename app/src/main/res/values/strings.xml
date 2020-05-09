@@ -4,7 +4,9 @@
     <string name="score">Score</string>
     <string name="player_A">Player A</string>
     <string name="player_B">Player B</string>
+    <string name="matched">matched!</string>
 
+    <string name="victory_message">won the game!</string>
     <string name="new_game_button">New Game</string>
     <string name="winner_key">winner</string> <!-- for dialog arguments -->
 
@@ -17,6 +19,7 @@
     <string name="three">3</string>
     <string name="four">4</string>
     <string name="default_matches_to_win">10</string>
+    <string name="default_matching_cards">2</string>
 
     <string name="bad_input_error_message">"Please select a number between 10 and 24"</string>
 

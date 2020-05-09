@@ -20,10 +20,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ViewFlipper;
 
+/* External library for animation. Found: https://github.com/genzeb/flip.git */
 import com.tekle.oss.android.animation.AnimationFactory;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 
 public class MainActivity extends AppCompatActivity
@@ -39,18 +42,22 @@ public class MainActivity extends AppCompatActivity
     private static final String NUM_FLIPS = "numFlips";
     private static final String IMAGES = "images";
     private static final String MATCHED_IMAGES = "matchedImages";
-    private static final String SELECTED_POSITION = "selectedPosition";
+    private static final String SELECTED_POSITIONS = "selectedPositions";
+    private static final String SELECTED_IMAGES = "selectedImages";
     private static final String TURN = "turn";
     private static final String MATCHES_TO_WIN = "matchesToWin";
+    private static final String NUM_MATCHING_CARDS = "numMatchingCards";
 
     private List<Integer> images;
     private List<Integer> matchedImages;
-    private int selectedPosition;
+    private List<Integer> selectedPositions;
     private int playerAScore;
     private int playerBScore;
     private int numFlips;
     private int matchesToWin;
+    private int numCardsToMatch;
     private boolean playerATurn;
+    private Set<Integer> selectedImages;
 
     private TextView playerAHeaderTV;
     private TextView playerBHeaderTV;
@@ -65,9 +72,12 @@ public class MainActivity extends AppCompatActivity
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
         this.matchesToWin = Integer.parseInt(preferences.getString(getString(R.string.matches_to_win),
                                             getString(R.string.default_matches_to_win)));
-        this.images = ImageAssets.getImages(this.matchesToWin * 2);
-        this.selectedPosition = -1;
+        this.numCardsToMatch = Integer.parseInt(preferences.getString(getString(R.string.matching_cards),
+                                                getString(R.string.default_matching_cards)));
+        this.images = ImageAssets.getImages(this.matchesToWin * 2, this.numCardsToMatch);
+        this.selectedPositions = new ArrayList<>();
         this.matchedImages = new ArrayList<>();
+        this.selectedImages = new HashSet<>();
         this.playerAScore = 0;
         this.playerBScore = 0;
         this.numFlips = 0;
@@ -78,9 +88,11 @@ public class MainActivity extends AppCompatActivity
     {
         Log.d(LOG_TAG, "Restoring game state");
         this.images = savedState.getIntegerArrayList(IMAGES);
-        this.selectedPosition = savedState.getInt(SELECTED_POSITION);
+        this.selectedPositions = savedState.getIntegerArrayList(SELECTED_POSITIONS);
+        this.selectedImages = new HashSet<>(savedState.getIntegerArrayList(SELECTED_IMAGES));
         this.matchedImages = savedState.getIntegerArrayList(MATCHED_IMAGES);
         this.matchesToWin = savedState.getInt(MATCHES_TO_WIN);
+        this.numCardsToMatch = savedState.getInt(NUM_MATCHING_CARDS);
         this.playerAScore = savedState.getInt(PLAYER_A_SCORE);
         this.playerBScore = savedState.getInt(PLAYER_B_SCORE);
         this.numFlips = savedState.getInt(NUM_FLIPS);
@@ -114,14 +126,19 @@ public class MainActivity extends AppCompatActivity
         // Make active player name and score bold
         setHeadersTypeface();
 
+        ImagesAdapter adapter = new ImagesAdapter(this.getApplicationContext(),
+                                                  this.images,
+                                                  this.selectedPositions,
+                                                  this.matchedImages);
+
         this.gridView = findViewById(R.id.products_grid);
-        this.gridView.setAdapter(new ImagesAdapter(this.getApplicationContext(), this.images, new ArrayList<Integer>(){{add(selectedPosition);}}, this.matchedImages));
+        this.gridView.setAdapter(adapter);
         this.gridView.setOnItemClickListener(new AdapterView.OnItemClickListener()
         {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, final int i, long l)
             {
-                if (numFlips == 2 || i == selectedPosition) // first condition means previous animation hasn't finished
+                if (numFlips == numCardsToMatch || selectedPositions.contains(i) || matchedImages.contains(images.get(i))) // first condition means previous animation hasn't finished
                 {
                     return;
                 }
@@ -135,23 +152,10 @@ public class MainActivity extends AppCompatActivity
                 final String player = playerATurn ? getString(R.string.player_A) : getString(R.string.player_B);
                 Log.d(LOG_TAG, player + " pressed image i: " + i);
 
-                if (numFlips == 1)
-                {
-                    // Save first attempt
-                    selectedPosition = i;
-                    final List<Integer> positions = new ArrayList<>();
-                    positions.add(selectedPosition);
-                    viewFlipper.postDelayed(new Runnable()
-                    {
-                        @Override
-                        public void run()
-                        {
-                            ((ImagesAdapter) gridView.getAdapter()).setSelectedPositions(positions);
-                            ((ImagesAdapter) gridView.getAdapter()).notifyDataSetChanged();
-                        }
-                    }, ANIMATION_TIME);
-                }
-                else
+                addToSelectedPositions(viewFlipper, i);
+                selectedImages.add(images.get(i));
+
+                if (numFlips == numCardsToMatch)
                 {
                     // Run in a delayed thread in order to not interrupt the animation
                     viewFlipper.postDelayed(new Runnable()
@@ -159,33 +163,34 @@ public class MainActivity extends AppCompatActivity
                         @Override
                         public void run()
                         {
-                            Integer image = images.get(selectedPosition);
-                            if (image.equals(images.get(i))) // there was a match
+                            if (selectedImages.size() == 1) // if all attempts chose the same image
                             {
                                 increaseScore();
 
-                                String msg = player + " matched!";
+                                String msg = player + " " + getString(R.string.matched);
                                 Log.d(LOG_TAG, msg);
                                 Toast.makeText(MainActivity.this, msg, Toast.LENGTH_SHORT).show();
 
+                                Integer image = selectedImages.iterator().next();
                                 matchedImages.add(image);
                                 ((ImagesAdapter) gridView.getAdapter()).addDisabledImages(image);
+
                             }
                             else
                             {
                                 // Flip card only if it is visible
-                                if (selectedPosition >= gridView.getFirstVisiblePosition() &&
-                                        selectedPosition <= gridView.getLastVisiblePosition())
+                                for (Integer position : selectedPositions)
                                 {
-                                    View v = gridView.getChildAt(selectedPosition -
-                                            gridView.getFirstVisiblePosition());
-                                    ViewFlipper item = v.findViewById(R.id.grid_item);
-                                    AnimationFactory.flipTransition(item,
-                                            AnimationFactory.FlipDirection.LEFT_RIGHT, ANIMATION_TIME);
+                                    if (position >= gridView.getFirstVisiblePosition() &&
+                                            position <= gridView.getLastVisiblePosition())
+                                    {
+                                        View v = gridView.getChildAt(position -
+                                                gridView.getFirstVisiblePosition());
+                                        ViewFlipper item = v.findViewById(R.id.grid_item);
+                                        AnimationFactory.flipTransition(item,
+                                                AnimationFactory.FlipDirection.LEFT_RIGHT, ANIMATION_TIME);
+                                    }
                                 }
-
-                                AnimationFactory.flipTransition(viewFlipper,
-                                        AnimationFactory.FlipDirection.LEFT_RIGHT, ANIMATION_TIME);
                             }
 
                             ((ImagesAdapter) gridView.getAdapter()).setSelectedPositions(new ArrayList<Integer>());
@@ -216,7 +221,8 @@ public class MainActivity extends AppCompatActivity
                                         // It's turn for the other player
                                         numFlips = 0;
                                         playerATurn = !playerATurn;
-                                        selectedPosition = -1;
+                                        selectedPositions = new ArrayList<>();
+                                        selectedImages = new HashSet<>();
 
                                         setHeadersTypeface();
 
@@ -250,11 +256,13 @@ public class MainActivity extends AppCompatActivity
         outState.putInt(PLAYER_A_SCORE, this.playerAScore);
         outState.putInt(PLAYER_B_SCORE, this.playerBScore);
         outState.putInt(NUM_FLIPS, this.numFlips);
-        outState.putInt(SELECTED_POSITION, this.selectedPosition);
         outState.putInt(MATCHES_TO_WIN, this.matchesToWin);
+        outState.putInt(NUM_MATCHING_CARDS, this.numCardsToMatch);
         outState.putBoolean(TURN, this.playerATurn);
         outState.putIntegerArrayList(IMAGES, (ArrayList) this.images);
+        outState.putIntegerArrayList(SELECTED_POSITIONS, (ArrayList) this.selectedPositions);
         outState.putIntegerArrayList(MATCHED_IMAGES, (ArrayList) this.matchedImages);
+        outState.putIntegerArrayList(SELECTED_IMAGES, new ArrayList<>(this.selectedImages));
         super.onSaveInstanceState(outState);
     }
 
@@ -301,7 +309,7 @@ public class MainActivity extends AppCompatActivity
         setScores();
         setHeadersTypeface();
         ((ImagesAdapter) this.gridView.getAdapter()).setImageIds(this.images);
-        ((ImagesAdapter) this.gridView.getAdapter()).setSelectedPositions(new ArrayList<Integer>(){{add(selectedPosition);}});
+        ((ImagesAdapter) this.gridView.getAdapter()).setSelectedPositions(this.selectedPositions);
         ((ImagesAdapter) this.gridView.getAdapter()).setDisabledImages(this.matchedImages);
         ((ImagesAdapter) this.gridView.getAdapter()).notifyDataSetChanged();
     }
@@ -342,6 +350,20 @@ public class MainActivity extends AppCompatActivity
             this.playerBHeaderTV.setTypeface(Typeface.DEFAULT_BOLD);
             this.playerBScoreTV.setTypeface(Typeface.DEFAULT_BOLD);
         }
+    }
+
+    private void addToSelectedPositions(ViewFlipper viewFlipper, int i)
+    {
+        selectedPositions.add(i);
+        viewFlipper.postDelayed(new Runnable()
+        {
+            @Override
+            public void run()
+            {
+                ((ImagesAdapter) gridView.getAdapter()).setSelectedPositions(selectedPositions);
+                ((ImagesAdapter) gridView.getAdapter()).notifyDataSetChanged();
+            }
+        }, ANIMATION_TIME);
     }
 
     @Override

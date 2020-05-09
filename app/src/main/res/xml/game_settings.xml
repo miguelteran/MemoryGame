@@ -11,7 +11,7 @@
     />
 
     <ListPreference
-        android:defaultValue="@string/two"
+        android:defaultValue="@string/default_matching_cards"
         android:entries="@array/number_of_matching_cards"
         android:entryValues="@array/number_of_matching_cards"
         android:key="@string/matching_cards"

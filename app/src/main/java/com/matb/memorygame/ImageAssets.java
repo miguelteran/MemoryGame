@@ -60,13 +60,16 @@ public class ImageAssets
         add(R.drawable.gorgeous_20paper_20hat);
     }};
 
-    public static List<Integer> getImages(int numberOfGroups)
+    public static List<Integer> getImages(int numberOfGroups, int cardsPerGroup)
     {
         int endIndex = numberOfGroups > baseImages.size() ? baseImages.size() : numberOfGroups;
         List<Integer> subList = baseImages.subList(0, endIndex);
 
-        List<Integer> images = new ArrayList<>(subList);
-        images.addAll(subList);
+        List<Integer> images = new ArrayList<>();
+        for (int i=0; i<cardsPerGroup; i++)
+        {
+            images.addAll(subList);
+        }
         Collections.shuffle(images);
         
         return images;
