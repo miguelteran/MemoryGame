@@ -63,7 +63,7 @@ public class SettingsFragment extends PreferenceFragmentCompat
             try
             {
                 int num_matches = Integer.parseInt(input);
-                if (num_matches > 24 || num_matches < 10)
+                if (num_matches > 24 || num_matches < 1)
                 {
                     error.show();
                     return false;

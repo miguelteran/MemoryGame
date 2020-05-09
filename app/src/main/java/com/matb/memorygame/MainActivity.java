@@ -30,8 +30,7 @@ import java.util.List;
 import java.util.Set;
 
 
-public class MainActivity extends AppCompatActivity
-        implements VictoryDialog.VictoryDialogListener, SharedPreferences.OnSharedPreferenceChangeListener
+public class MainActivity extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener
 {
     private static String LOG_TAG = MainActivity.class.getSimpleName();
     private static final long ANIMATION_TIME = 100;
@@ -170,6 +169,17 @@ public class MainActivity extends AppCompatActivity
 
                                 String msg = player + " " + getString(R.string.matched);
                                 Log.d(LOG_TAG, msg);
+
+                                int score = playerATurn ? playerAScore : playerBScore;
+                                Log.d(LOG_TAG, player + " score: " + score);
+
+                                if (score == matchesToWin)
+                                {
+                                    Log.d(LOG_TAG, player + " won");
+                                    generateVictoryDialog(player);
+                                    return;
+                                }
+
                                 Toast.makeText(MainActivity.this, msg, Toast.LENGTH_SHORT).show();
 
                                 Integer image = selectedImages.iterator().next();
@@ -197,42 +207,25 @@ public class MainActivity extends AppCompatActivity
                             ((ImagesAdapter) gridView.getAdapter()).setSelectedPositions(new ArrayList<Integer>());
                             ((ImagesAdapter) gridView.getAdapter()).notifyDataSetChanged();
 
-                            int score = playerATurn ? playerAScore : playerBScore;
-                            Log.d(LOG_TAG, player + " score: " + score);
-
-                            if (score == matchesToWin)
+                            viewFlipper.postDelayed(new Runnable()
                             {
-                                Log.d(LOG_TAG, player + " won");
-
-                                Bundle bundle = new Bundle();
-                                bundle.putString(getString(R.string.winner_key), player);
-
-                                // Pop up dialog indicating which player won
-                                DialogFragment victoryDialog = new VictoryDialog();
-                                victoryDialog.setArguments(bundle);
-                                victoryDialog.show(getSupportFragmentManager(), "victory");
-                            }
-                            else
-                            {
-                                viewFlipper.postDelayed(new Runnable()
+                                @Override
+                                public void run()
                                 {
-                                    @Override
-                                    public void run()
-                                    {
-                                        // It's turn for the other player
-                                        numFlips = 0;
-                                        playerATurn = !playerATurn;
-                                        selectedPositions = new ArrayList<>();
-                                        selectedImages = new HashSet<>();
+                                    // It's turn for the other player
+                                    numFlips = 0;
+                                    playerATurn = !playerATurn;
+                                    selectedPositions = new ArrayList<>();
+                                    selectedImages = new HashSet<>();
 
-                                        setHeadersTypeface();
+                                    setHeadersTypeface();
 
-                                        String newPlayer = playerATurn ? getString(R.string.player_A)
-                                                : getString(R.string.player_B);
-                                        Log.d(LOG_TAG, "Switching to " + newPlayer);
-                                    }
-                                }, ANIMATION_TIME);
-                            }
+                                    String newPlayer = playerATurn ? getString(R.string.player_A)
+                                            : getString(R.string.player_B);
+                                    Log.d(LOG_TAG, "Switching to " + newPlayer);
+                                }
+                            }, ANIMATION_TIME);
+
                         }
                     }, THREAD_DELAY);
                 }
@@ -241,13 +234,6 @@ public class MainActivity extends AppCompatActivity
 
         PreferenceManager.getDefaultSharedPreferences(this)
                 .registerOnSharedPreferenceChangeListener(this);
-    }
-
-    @Override
-    public void onNewGameClick(DialogFragment dialog)
-    {
-        dialog.dismiss();
-        startNewGame();
     }
 
     @Override
@@ -320,6 +306,19 @@ public class MainActivity extends AppCompatActivity
                 .setMessage(R.string.restart_message)
                 .setNegativeButton(android.R.string.no, null)
                 .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener()
+                {
+                    public void onClick(DialogInterface dialog, int id)
+                    {
+                        startNewGame();
+                    }
+                }).create().show();
+    }
+
+    private void generateVictoryDialog(String player)
+    {
+        new AlertDialog.Builder(this)
+                .setMessage(player + " " + getString(R.string.victory_message))
+                .setPositiveButton(R.string.new_game_button, new DialogInterface.OnClickListener()
                 {
                     public void onClick(DialogInterface dialog, int id)
                     {
