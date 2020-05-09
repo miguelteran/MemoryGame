@@ -5,11 +5,17 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context=".MainActivity">
 
-    <!--<item-->
-        <!--android:id="@+id/shuffle_cards_menu_item"-->
-        <!--android:title="@string/shuffle"-->
-        <!--app:showAsAction="never"-->
-    <!--/>-->
+    <item
+        android:id="@+id/shuffle_cards_menu_item"
+        android:title="@string/shuffle"
+        app:showAsAction="never"
+    />
+
+    <item
+        android:id="@+id/restart_game_menu_item"
+        android:title="@string/restart"
+        app:showAsAction="never"
+        />
 
     <item
         android:id="@+id/settings_menu_item"

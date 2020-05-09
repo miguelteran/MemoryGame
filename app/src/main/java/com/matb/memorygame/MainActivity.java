@@ -24,6 +24,7 @@ import android.widget.ViewFlipper;
 import com.tekle.oss.android.animation.AnimationFactory;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -293,13 +294,38 @@ public class MainActivity extends AppCompatActivity
     @Override
     public boolean onOptionsItemSelected(MenuItem item)
     {
-        if (item.getItemId() == R.id.settings_menu_item)
+        int itemId = item.getItemId();
+        if (itemId == R.id.settings_menu_item)
         {
             Intent settingsActivity = new Intent(this, SettingsActivity.class);
             startActivity(settingsActivity);
             return true;
         }
+        else if (itemId == R.id.shuffle_cards_menu_item)
+        {
+            shuffleCards();
+            return true;
+        }
+        else if (itemId == R.id.restart_game_menu_item)
+        {
+            generateRestartGameDialog();
+            return true;
+        }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void generateRestartGameDialog()
+    {
+        new AlertDialog.Builder(this)
+                .setMessage(R.string.restart_message)
+                .setNegativeButton(android.R.string.no, null)
+                .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener()
+                {
+                    public void onClick(DialogInterface dialog, int id)
+                    {
+                        startNewGame();
+                    }
+                }).create().show();
     }
 
     private void startNewGame()
@@ -364,6 +390,31 @@ public class MainActivity extends AppCompatActivity
                 ((ImagesAdapter) gridView.getAdapter()).notifyDataSetChanged();
             }
         }, ANIMATION_TIME);
+    }
+
+    private void shuffleCards()
+    {
+        // Save which images were selected
+        List<Integer> selectedImagesFromPositions = new ArrayList<>();
+        for (Integer position : this.selectedPositions)
+        {
+            selectedImagesFromPositions.add(this.images.get(position));
+        }
+
+        Collections.shuffle(this.images);
+
+        // Update positions
+        this.selectedPositions = new ArrayList<>();
+        for (Integer image : selectedImagesFromPositions)
+        {
+            this.selectedPositions.add(this.images.indexOf(image));
+        }
+
+        // Update adapter
+        ((ImagesAdapter) this.gridView.getAdapter()).setImageIds(this.images);
+        ((ImagesAdapter) this.gridView.getAdapter()).setSelectedPositions(this.selectedPositions);
+        ((ImagesAdapter) this.gridView.getAdapter()).setDisabledImages(this.matchedImages);
+        ((ImagesAdapter) this.gridView.getAdapter()).notifyDataSetChanged();
     }
 
     @Override

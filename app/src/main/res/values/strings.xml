@@ -1,18 +1,31 @@
 <resources>
     <string name="app_name">MemoryGame</string>
 
+    <!-- Header -->
     <string name="score">Score</string>
     <string name="player_A">Player A</string>
     <string name="player_B">Player B</string>
+
+    <!-- Toast -->
     <string name="matched">matched!</string>
 
+    <!-- Victory Dialog -->
     <string name="victory_message">won the game!</string>
     <string name="new_game_button">New Game</string>
     <string name="winner_key">winner</string> <!-- for dialog arguments -->
 
+    <!-- Restart Dialog -->
+    <string name="restart_message">Do you want to restart game?</string>
+
+    <!-- Exit Dialog -->
     <string name="exit_message">Do you want to quit?</string>
 
+    <!-- Menu -->
+    <string name="shuffle">Shuffle Cards</string>
+    <string name="restart">Restart Game</string>
     <string name="settings">Settings</string>
+
+    <!-- Settings -->
     <string name="matching_cards">Number of cards to match</string>
     <string name="matches_to_win">Number of matches to win</string>
     <string name="two">2</string>
@@ -20,7 +33,6 @@
     <string name="four">4</string>
     <string name="default_matches_to_win">10</string>
     <string name="default_matching_cards">2</string>
-
     <string name="bad_input_error_message">"Please select a number between 10 and 24"</string>
 
 </resources>
